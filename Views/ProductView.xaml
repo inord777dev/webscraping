@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:MauiScrap.Models"
+             x:Class="MauiScrap.Views.ProductView"
+             Title="Edit product">
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <Style TargetType="Label">
+                <Setter Property="FontSize" Value="14"></Setter>
+                <Setter Property="TextColor" Value="SlateGray"></Setter>
+            </Style>
+        </ResourceDictionary>
+    </ContentPage.Resources>
+    <ScrollView>
+        <VerticalStackLayout Margin="10" Spacing="5">
+            <VerticalStackLayout>
+                <Label Text="Name" />
+                <Entry Placeholder="Name" Text="{Binding Product.Name}" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout>
+                <Label Text="Address" />
+                <Entry Placeholder="Address" Text="{Binding Product.Address}" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout>
+                <Label Text="Price" />
+                <Entry Placeholder="Price" Text="{Binding Product.Price}" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout>
+                <Label Text="Favorites" />
+                <CheckBox IsChecked="{Binding Product.IsFavorites}" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout>
+                <Label Text="Updated" />
+                <Entry Placeholder="Updated" Text="{Binding Product.Updated}" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout>
+                <Label Text="Url"/>
+                <Entry Placeholder="Url" Text="{Binding Product.Url}" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout>
+                <Label Text="Price changes" />
+                <ListView ItemsSource="{Binding Product.PriceChanges}" SelectionMode="Single">
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="models:PriceChanges">
+                            <ViewCell>
+                                <ViewCell.View>
+                                    <HorizontalStackLayout Spacing="15">
+                                        <Label Text="{Binding Price}" />
+                                        <Label Text="{Binding Updated}" />
+                                    </HorizontalStackLayout>
+                                </ViewCell.View>
+                            </ViewCell>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </VerticalStackLayout>
+            <VerticalStackLayout>
+                <Button Text="Save" Command="{Binding SaveCommand}"></Button>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

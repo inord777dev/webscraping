@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:models="clr-namespace:MauiScrap.Models"
+             xmlns:viewModels="clr-namespace:MauiScrap.ViewModels"
+             x:DataType="viewModels:ProductsViewModel"
+             x:Class="MauiScrap.Views.ProductsView"
+             Title="Products">
+    <StackLayout Margin="10">
+        <HorizontalStackLayout HorizontalOptions="End" Spacing="5">
+            <Button Text="Add" Command="{Binding AddCommand}" HorizontalOptions="EndAndExpand" ></Button>
+            <Button Text="Edit" Command="{Binding EditCommand}" CommandParameter="{Binding .}" HorizontalOptions="EndAndExpand"></Button>
+            <Button Text="Delete" Command="{Binding DeleteCommand}" HorizontalOptions="EndAndExpand"></Button>
+            <Button Text="Load" Command="{Binding LoadCommand}" HorizontalOptions="EndAndExpand"></Button>
+        </HorizontalStackLayout>
+        <ListView x:Name="collectionView" ItemsSource="{Binding Products}" SelectionMode="Single" SelectedItem="{Binding SelectedProduct}">
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="models:Product">
+                    <ViewCell>
+                        <ViewCell.View>
+                            <StackLayout>
+                                <Label Text="{Binding Name}" FontSize="16" FontAttributes="Bold" />
+                                <Label Text="{Binding Address}" />
+                                <HorizontalStackLayout Spacing="15">
+                                    <Label Text="{Binding Price}" />
+                                    <Label Text="{Binding PriceChanges.Count}" />
+                                </HorizontalStackLayout>
+                                <HorizontalStackLayout Spacing="15">
+                                    <Label Text="{Binding IsFavorites}" />
+                                    <Label Text="{Binding Updated}" />
+                                </HorizontalStackLayout>
+                                <Label Text="{Binding Url}" />
+                            </StackLayout>
+                        </ViewCell.View>
+                    </ViewCell>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+    </StackLayout>
+</ContentPage>
