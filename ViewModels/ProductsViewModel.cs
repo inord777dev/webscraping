@@ -18,21 +18,6 @@ namespace MauiScrap.ViewModels
         private readonly IProductService _productService;
         public ObservableCollection<Product>? Products { get; set; } = new ObservableCollection<Product>();
 
-        private Product selectedProduct;
-
-        public Product SelectedProduct 
-        {  
-            get 
-            { 
-                return selectedProduct; 
-            } 
-            set 
-            {
-                selectedProduct = value;
-                OnPropertyChanged();
-                RefreshCanExecutes();
-            } 
-        }
 
         public ICommand AddCommand { private set; get; }
         public ICommand EditCommand { private set; get; }
@@ -55,35 +40,37 @@ namespace MauiScrap.ViewModels
                 });
 
             EditCommand = new Command(
-                execute: () =>
+                execute: (object product) =>
                 {
-                    if (SelectedProduct != null)
+                    if (product != null)
                     {
-                        var parameters = new Dictionary<string, object>();
-                        parameters.Add(nameof(Product), SelectedProduct);
+                        var parameters = new Dictionary<string, object>
+                        {
+                            { nameof(Product), product }
+                        };
                         AppShell.Current.GoToAsync(nameof(ProductView), parameters);
                     }
                 },
-                canExecute: () =>
+                canExecute: (object product) =>
                 {
-                    return SelectedProduct != null;
+                    return product != null;
                 });
 
             DeleteCommand = new Command(
-                execute: async () =>
+                execute: async (object product) =>
                 {
-                    if (SelectedProduct != null)
+                    if (product != null)
                     {
-                        var result = await _productService.DeleteProduct(SelectedProduct);
+                        var result = await _productService.DeleteProduct((Product)product);
                         if (result > 0)
                         {
                             GetAllCommand?.Execute(this);
                         }
                     }
                 },
-                canExecute: () =>
+                canExecute: (object product) =>
                 {
-                    return SelectedProduct != null;
+                    return product != null;
                 });
 
             GetAllCommand = new Command(
@@ -106,17 +93,19 @@ namespace MauiScrap.ViewModels
                 execute: async () =>
                 {
                     var result = await _productService.Load();
+                    if (result == -1)
+                    {
+                        Application.Current.MainPage.DisplayAlert("Warning", "Error loading", "Ok");
+                    }
+                    else
+                    {
+                        Application.Current.MainPage.DisplayAlert("Loading", "Loading complete", "Ok");
+                    }
                 },
                 canExecute: () =>
                 {
                     return true;
                 });
-        }
-
-        void RefreshCanExecutes()
-        {
-            (EditCommand as Command).ChangeCanExecute();
-            (DeleteCommand as Command).ChangeCanExecute();
         }
 
         #region INotifyPropertyChanged
