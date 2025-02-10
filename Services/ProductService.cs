@@ -1,13 +1,8 @@
-﻿using Fizzler.Systems.HtmlAgilityPack;
-using HtmlAgilityPack;
-using MauiScrap.Models;
+﻿using MauiScrap.Models;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Net.Http.Headers;
 using WpfScrap.Services;
+using System.Text.Json.Nodes;
 
 namespace MauiScrap.Services
 {
@@ -15,10 +10,10 @@ namespace MauiScrap.Services
     {
         private DataContext dataContext;
 
-        public ProductService(DataContext dataContext) 
+        public ProductService(DataContext dataContext)
         {
             this.dataContext = dataContext;
-        }   
+        }
 
         public Task<int> AddProduct(Product product)
         {
@@ -48,12 +43,13 @@ namespace MauiScrap.Services
         {
             int result = 0;
 
-            var firstPage = "https://re.kufar.by/l/novopolock/kupit/kvartiru?cur=USD&rms=v.or%3A3%2C4";
-            Uri currentUri = new Uri(firstPage);
-            UriBuilder baseUriBuilder = new UriBuilder(currentUri.Scheme, currentUri.Host, -1);
-            var pagesDiscovered = new List<string>();
+            //https://api.kufar.by/search-api/v2/search/rendered-paginated?cat=1010&cur=USD&gtsy=country-belarus~province-vitebskaja_oblast~locality-novopolock&lang=ru&rms=v.or:4,3&size=30&typ=sell
+            var firstPage = "search-api/v2/search/rendered-paginated?cat=1010&cur=USD&gtsy=country-belarus~province-vitebskaja_oblast~locality-novopolock&lang=ru&rms=v.or:4,3&size=30&typ=sell";
+            //Uri currentUri = new Uri(firstPage);
+            //UriBuilder baseUriBuilder = new UriBuilder(currentUri.Scheme, currentUri.Host, -1);
             var pages = new Queue<string>();
             pages.Enqueue(firstPage);
+            var pagesDiscovered = new List<string>();
 
             try
             {
@@ -61,81 +57,65 @@ namespace MauiScrap.Services
                 {
                     int i = 1;
                     int limit = 12;
+                    DateTime now = DateTime.Now;
+                    client.BaseAddress = new Uri("https://api.kufar.by");
+                    client.DefaultRequestHeaders.Add("User-Agent", "Anything");
+                    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
                     while (pages.Count != 0 && i < limit)
                     {
                         var currentPage = pages.Dequeue();
 
-                        var answer = await client.GetStringAsync(currentPage).ConfigureAwait(false);
-                        pagesDiscovered.Add(currentPage);
+                        var response = client.GetAsync(currentPage).Result;
+                        response.EnsureSuccessStatusCode();
+                        var json = await response.Content.ReadAsStringAsync();
+                        pagesDiscovered.Add(json);
 
-                        var doc = new HtmlDocument();
-                        doc.LoadHtml(answer);
-                        var document = doc.DocumentNode;
-
-
-                        var wrapper = document.QuerySelector("div.styles_cards__HMGBx");
-                        var productHTMLElements = wrapper.QuerySelectorAll("a.styles_wrapper__Q06m9");
-                        foreach (var productHTMLElement in productHTMLElements)
+                        JsonNode contect = JsonNode.Parse(json)!;
+                        var ads = contect["ads"]!.AsArray();
+                        foreach (var item in ads)
                         {
-                            var href = productHTMLElement.GetAttributeValue("href", "");
-                            var uri = new Uri(href);
-                            var url = (new Uri(baseUriBuilder.Uri, uri.AbsolutePath)).AbsoluteUri;
-                            var address = productHTMLElement.QuerySelector("span.styles_address__l6Qe_").InnerText;
-                            var name = productHTMLElement.QuerySelector("div.styles_parameters__7zKlL").InnerText;
-                            var price = productHTMLElement.QuerySelector("span.styles_price__byr__lLSfd").InnerText;
-                            var updated = productHTMLElement.QuerySelector("div.styles_date__ssUVP").InnerText;
+                            var url = item["ad_link"]!.GetValue<string>();
+                            var parameters = item["account_parameters"]!.AsArray();
+                            var parameter_address = parameters.Where(x => x["p"]!.GetValue<string>() == "address").FirstOrDefault();
+                            var address = parameter_address["v"]!.GetValue<string>();
+                            var name = item["subject"]!.GetValue<string>();
+                            var price = item["price_byn"]!.GetValue<string>();
+                            var price_usd = item["price_usd"]!.GetValue<string>();
+                            var updated = item["list_time"]!.GetValue<string>();
 
-                            var product = dataContext.Products.Where(x => x.Url == url).FirstOrDefault();
-                            if (product == null)
+                            if (url != null)
                             {
-                                product = new Product() { Url = url, Address = address, Name = name, Price = price, Updated = updated };
-                                dataContext.Products.Add(product);
-                            }
-                            else
-                            {
-                                product = dataContext.Products.Find(product.Id);
-                                var entry = dataContext.Entry<Product>(product);
-                                if (product.Url != url)
+                                var product = dataContext.Products.Where(x => x.Url == url).FirstOrDefault();
+                                if (product == null)
                                 {
-                                    product.Url = url;
-                                    entry.State = EntityState.Modified;
+                                    product = new Product() { Url = url, Address = address, Name = name, Price = price, Updated = updated, Created = now };
+                                    dataContext.Products.Add(product);
                                 }
-
-                                if (product.Address != address)
+                                else
                                 {
-                                    product.Address = address;
-                                    entry.State = EntityState.Modified;
-                                }
+                                    var entry = dataContext.Entry(product);
+                                    if (product.Updated != updated)
+                                    {
+                                        PriceChanges priceChanges = new PriceChanges() { Product = product, Price = product.Price, Updated = product.Updated };
+                                        dataContext.PriceChanges.Add(priceChanges);
 
-                                if (product.Name != name)
-                                {
-                                    product.Name = name;
-                                    entry.State = EntityState.Modified;
-                                }
+                                        product.Price = price;
+                                        product.Updated = updated;
 
-                                if (product.Price != price || product.Updated != updated)
-                                {
-                                    PriceChanges priceChanges = new PriceChanges() { Product = product, Price = product.Price, Updated = product.Updated };
-                                    dataContext.PriceChanges.Add(priceChanges);
-
-                                    product.Price = price;
-                                    product.Updated = updated;
-
-                                    entry.State = EntityState.Modified;
+                                        entry.State = EntityState.Modified;
+                                    }
                                 }
                             }
                         }
 
-                        var paginationWrapper = document.QuerySelector("div.styles_pagination__EEqgm");
-                        var paginationElements = paginationWrapper.QuerySelectorAll("a.styles_link__8m3I9");
-                        foreach (var paginationElement in paginationElements)
+                        var page_next = contect["pagination"]!["pages"]!.AsArray()!.Where(x => x["label"]!.GetValue<string>() == "next").FirstOrDefault();
+                        if (page_next != null)
                         {
-                            var nextPaginationLink = paginationElement.GetAttributeValue("href", "");
-                            Uri nextUri = new Uri(baseUriBuilder.Uri, nextPaginationLink);
-                            if (!pagesDiscovered.Contains(nextUri.AbsoluteUri) && !pages.Contains(nextUri.AbsoluteUri))
+                            var token = page_next["token"]!.GetValue<string>();
+                            if (!string.IsNullOrEmpty(token))
                             {
-                                pages.Enqueue(nextUri.AbsoluteUri);
+                                pages.Enqueue(firstPage + $"&cursor={token}");
                             }
                         }
 

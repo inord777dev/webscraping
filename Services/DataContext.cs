@@ -3,6 +3,7 @@ using MauiScrap.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,29 +12,47 @@ namespace WpfScrap.Services
 {
     public class DataContext : DbContext
     {
+        private readonly int PRAGMA_USER_VERSION = 1;
         public DbSet<Product> Products { get; set; } = null!;
         public DbSet<PriceChanges> PriceChanges { get; set; } = null!;
-        //protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        //{
-        //    var dbPath = Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal), "kufar.db");
-        //    optionsBuilder.UseSqlite($"Filename={dbPath}");
-        //    base.OnConfiguring(optionsBuilder);
-        //    optionsBuilder.UseSqlite("Data Source=kufar.db");
-        //}
 
-        public DataContext() 
+        public DataContext(DbContextOptions<DataContext> options) : base(options)
         {
-            Database.EnsureCreated();
+            if (!Database.EnsureCreated())
+            {
+                long user_version = Database.SqlQueryRaw<long>("PRAGMA user_version")
+                                        .AsEnumerable().FirstOrDefault();
+
+                while (PRAGMA_USER_VERSION > user_version)
+                {
+                    try
+                    {
+                        user_version += 1;
+                        switch (user_version)
+                        {
+                            case 1:
+                                UpdateUserVersion_1();
+                                break;
+                            default:
+                                break;
+                        }
+                        Database.ExecuteSqlRaw($"PRAGMA user_version={user_version}");
+                    }
+                    catch
+                    {
+
+                    }
+                }
+            }
         }
 
-        //use for DI!
-        public DataContext(DbContextOptions<DataContext> options): base(options)
+        private void UpdateUserVersion_1()
         {
-            Database.EnsureCreated();
-        }
+            String script = "ALTER TABLE Products ADD Created DATETIME";
+            Database.ExecuteSqlRaw(script);
 
-        //use for migration!
-        protected override void OnConfiguring(DbContextOptionsBuilder options)
-             => options.UseSqlite();
+            script = string.Format("UPDATE Products SET Created = '{0:dd.MM.yyyy}'", DateTime.MinValue);
+            Database.ExecuteSqlRaw(script);
+        }
     }
 }

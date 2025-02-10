@@ -45,6 +45,11 @@
             </VerticalStackLayout>
 
             <VerticalStackLayout>
+                <Label Text="Created"/>
+                <Entry Placeholder="Created" Text="{Binding Product.Created}" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout>
                 <Label Text="Price changes" />
                 <ListView ItemsSource="{Binding Product.PriceChanges}" SelectionMode="Single">
                     <ListView.ItemTemplate>

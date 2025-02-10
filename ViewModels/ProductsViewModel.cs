@@ -17,8 +17,6 @@ namespace MauiScrap.ViewModels
     {
         private readonly IProductService _productService;
         public ObservableCollection<Product>? Products { get; set; } = new ObservableCollection<Product>();
-
-
         public ICommand AddCommand { private set; get; }
         public ICommand EditCommand { private set; get; }
         public ICommand DeleteCommand { private set; get; }
@@ -93,13 +91,14 @@ namespace MauiScrap.ViewModels
                 execute: async () =>
                 {
                     var result = await _productService.Load();
-                    if (result == -1)
+                    if (result > -1)
                     {
-                        Application.Current.MainPage.DisplayAlert("Warning", "Error loading", "Ok");
+                        Application.Current.MainPage.DisplayAlert("Loading", $"Loading complete. Updated {result}.", "Ok");
+                        GetAllCommand?.Execute(this);
                     }
                     else
                     {
-                        Application.Current.MainPage.DisplayAlert("Loading", "Loading complete", "Ok");
+                        Application.Current.MainPage.DisplayAlert("Warning", "Error loading.", "Ok");
                     }
                 },
                 canExecute: () =>

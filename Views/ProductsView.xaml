@@ -17,32 +17,28 @@
                     <ViewCell>
                         <ViewCell.View>
                             <SwipeView>
-                                <SwipeView.LeftItems>
-                                    <SwipeItems>
-                                        <SwipeItem IconImageSource="star.png" />
-                                    </SwipeItems>
-                                </SwipeView.LeftItems>
                                 <SwipeView.RightItems>
                                     <SwipeItems>
                                         <SwipeItem Text="Edit" Invoked="SwipeItem_Edit"/>
                                         <SwipeItem Text="Delete" Invoked="SwipeItem_Delete"/>
                                     </SwipeItems>
                                 </SwipeView.RightItems>
-                                <StackLayout>
-                                    <HorizontalStackLayout Spacing="15">
-                                        <Label Text="{Binding Name}" FontSize="16" FontAttributes="Bold" />
-                                        <Label Text="{Binding PriceChanges.Count}" />
-                                    </HorizontalStackLayout>
-                                    <HorizontalStackLayout Spacing="15">
-                                        <Label Text="{Binding Address}" />
-                                        <Label Text="{Binding Price}" />
-                                    </HorizontalStackLayout>
-                                    <HorizontalStackLayout Spacing="15">
-                                        <Label Text="{Binding IsFavorites}" />
-                                        <Label Text="{Binding Updated}" />
-                                    </HorizontalStackLayout>
-                                    <Label Text="{Binding Url}" />
-                                </StackLayout>
+                                <Grid Padding="10">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Label Grid.Column="1" Grid.Row="1" Text="{Binding Name}" FontSize="16" FontAttributes="Bold" />
+                                    <Label Grid.Column="1" Grid.Row="2" Grid.RowSpan="2" Text="{Binding Address}" />
+                                    <Label Grid.Column="2" Grid.Row="1" Text="{Binding Price}" />
+                                    <Label Grid.Column="2" Grid.Row="2" Text="{Binding PriceDelta}" />
+                                    <Label Grid.Column="2" Grid.Row="3" Text="{Binding IsFavorites}" />
+                                </Grid>
                             </SwipeView>
                         </ViewCell.View>
                     </ViewCell>
